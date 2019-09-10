@@ -86,7 +86,7 @@ namespace MathFromString
                 }
             }
 
-            return null;
+            return null; 
         }
 
         public static bool DoMaths(ref string number, ref double l1, ref double l2, ref Operation op, Operation newOp, ref bool firstOperation)
