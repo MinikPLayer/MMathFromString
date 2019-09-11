@@ -4,6 +4,10 @@ namespace MathFromString
 {
     class Program
     {
+        /// <summary>
+        /// Calculates data and returns with result multiplied by 100
+        /// </summary>
+        /// <param name="args">Empty => user would be prompted to write data, args[0] => automatically calculate these</param>
         static void Main(string[] args)
         {
             string dataToCalculate = "";
@@ -27,8 +31,12 @@ namespace MathFromString
                 return;
             }
 
+            Debug.Log("Test scientific notation: " + MUtil.ToStandardNotationString(2.5));
+
             double result = MathFromString.Calculate(dataToCalculate);
             Debug.Log("Result: " + result, ConsoleColor.Yellow);
+
+            Environment.Exit((int)(result*100));
         }
     }
 }

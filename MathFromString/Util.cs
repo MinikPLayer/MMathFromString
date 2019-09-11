@@ -6,6 +6,16 @@ namespace MathFromString
 {
     public static class MUtil
     {
+        public static bool IsNumber(char data)
+        {
+            if(data >= 48 && data <= 57)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         public static double Power(double a, double n)
         {
             if (a == 0) return 0;
@@ -31,6 +41,190 @@ namespace MathFromString
         public static string RemoveSpaces(string src)
         {
             return RemoveChars(src, new char[] { ' ' });
+        }
+
+        public static double GetDoubleFromExpNotation(string number, bool stopOnDifferentChar = true)
+        {
+            string value = ExpNotationToDecimalNotation(number, stopOnDifferentChar, false);
+            double returnValue;
+            if(!double.TryParse(value, out returnValue))
+            {
+                Debug.LogError("Cannot convert " + value + " to returnValue ( double )");
+                return double.NaN;
+            }
+
+            return returnValue;
+        }
+
+        public static string ExpNotationToDecimalNotation(string number, bool stopOnDifferentChar = true, bool includeRest = true)
+        {
+            Debug.Log("Converting " + number);
+
+            bool bigE = false;
+
+            if(number.Contains("E+"))
+            {
+                bigE = true;
+            }
+            else if(number.Contains("e+"))
+            {
+                bigE = false;
+            }
+            else
+            {
+                return number;
+            }
+
+            string beforeComma = "";
+            string afterComma = "";
+            string expValue = "";
+            string rest = "";
+
+
+            bool wasComma = false;
+
+            for(int i = 0;i<number.Length;i++)
+            {
+
+                if(number[i] == ',')
+                {
+                    wasComma = true;
+                    continue;
+                }
+
+                if (bigE)
+                {
+                    if (number[i] == 'E')
+                    {
+                        if (i + 2 >= number.Length)
+                        {
+                            Debug.LogError("No exp value 1E");
+                            return "ERROR";
+                        }
+
+                        if (number[i + 1] != '+')
+                        {
+                            Debug.LogError("Unknown char E in data");
+                            return "ERROR";
+                        }
+
+
+                        for (int j = i + 2; j < number.Length; j++)
+                        {
+                            if (!IsNumber(number[j]))
+                            {
+                                if (stopOnDifferentChar)
+                                {
+                                    rest = number.Substring(j, number.Length - j);
+                                    break;
+                                }
+                            }
+
+                            expValue += number[j];
+                        }
+
+                        break;
+                    }
+                }
+                else
+                {
+                    if (number[i] == 'e')
+                    {
+                        if (i + 2 >= number.Length)
+                        {
+                            Debug.LogError("No exp value 1e");
+                            return "ERROR";
+                        }
+
+                        if (number[i + 1] != '+')
+                        {
+                            Debug.LogError("Unknown char e in data");
+                            return "ERROR"; 
+                        }
+
+                        for (int j = i + 2; j < number.Length; j++)
+                        {
+                            if(!IsNumber(number[j]))
+                            {
+                                if (stopOnDifferentChar)
+                                {
+                                    rest = number.Substring(j, number.Length - j);
+                                    break;
+                                }
+                            }
+
+                            expValue += number[j];
+                        }
+
+                        break;
+                    }
+                }
+
+                if (wasComma)
+                {
+                   
+
+                    afterComma += number[i];
+                }
+                else
+                {
+                    beforeComma += number[i];
+                }
+            }
+
+            if(expValue.Length == 0)
+            {
+                Debug.LogError("No exp value 2");
+                return "ERROR";
+            }
+
+            double exp;
+            if(!double.TryParse(expValue, out exp))
+            {
+                Debug.LogError("Bad exp value");
+                return "ERROR";
+            }
+
+            Debug.Log("Before comma: " + beforeComma);
+            Debug.Log("After comma: " + afterComma);
+            Debug.Log("Exp: " + expValue);
+            Debug.Log("Rest: " + rest);
+
+            for(int i = 0;i<exp;i++)
+            {
+                if(i >= afterComma.Length)
+                {
+                    beforeComma += "0";
+                }
+                else
+                {
+                    beforeComma += afterComma[i];
+                }
+            }
+
+            Debug.Log("Result: " + beforeComma + "\n\n");
+
+            if (includeRest)
+            {
+                return beforeComma + rest;
+            }
+            else
+            {
+                return beforeComma;
+            }
+
+        }
+
+        /// <summary>
+        /// Converts the double to a standard notation string.
+        /// </summary>
+        /// <param name="d">The double to convert.</param>
+        /// <returns>The double as a standard notation string.</returns>
+        public static String ToStandardNotationString(double d)
+        {
+            //Keeps precision of double up to is maximum
+            return d.ToString(".#####################################################################################################################################################################################################################################################################################################################################");
+
         }
 
         public static string RemoveChars(string src, char[] charsToRemove)

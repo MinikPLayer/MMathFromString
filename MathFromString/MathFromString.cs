@@ -121,8 +121,13 @@ namespace MathFromString
             {
                 if (!double.TryParse(number, out l2))
                 {
-                    Debug.LogError("Cannot parse " + number + " to number ( double )");
-                    return false;
+                    number = MUtil.ExpNotationToDecimalNotation(number);
+                    if (!double.TryParse(number, out l1))
+                    {
+
+                        Debug.LogError("Cannot parse " + number + " to number ( double )");
+                        return false;
+                    }
                 }
                 
 
@@ -143,6 +148,8 @@ namespace MathFromString
 
             return true;
         }
+
+       
 
         public static string CalculateSpecificOperations(string data, Operation[] allowedOperations)
         {
@@ -183,14 +190,72 @@ namespace MathFromString
 
             if(startIndex == 0)
             {
-                Debug.LogError("Operator without number");
+                Debug.LogError("Operator without number: " + data);
                 return "EOPWTHTNMBR";
             }
 
+            
+
             if(!double.TryParse(startData, out l1))
             {
-                Debug.LogError("Cannot convert " + startData + " to l1 ( double )");
-                return "ECONVERSION";
+
+                if (startData[startData.Length - 1] == 'E' || startData[startData.Length - 1] == 'e')
+                {
+                    for (int i = startData.Length; i < data.Length; i++)
+                    {
+                        if (MUtil.IsNumber(data[i]) || data[i] == '+')
+                        {
+                            startData += data[i];
+                        } 
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    for(int i = 0;i<data.Length;i++)
+                    {
+                        if(data[i] == 'e' || data[i] == 'E')
+                        {
+                            if(data.Length > i + 1)
+                            {
+                                if(data[i+1] == '+')
+                                {
+                                    i += 2;
+                                    
+                                }
+                            }
+                        }
+
+                        op = FindOperation(data[i]);
+                        if (op != null)
+                        {
+                            break;
+                        }
+                    }
+
+                    l1 = MUtil.GetDoubleFromExpNotation(startData);
+                    data = data.Remove(0, startData.Length);
+
+                    string decimalStartData = MUtil.ExpNotationToDecimalNotation(startData);
+                    data = data.Insert(0, decimalStartData);
+                    startData = decimalStartData;
+
+                    startIndex = startData.Length;
+
+                    Debug.Log("Data after converting exponent notation: " + data);
+                }
+                else
+                {
+                    Debug.LogError("Cannot convert " + startData + " to l1 ( double )");
+                    return "ECONVERSION";
+                }
+
+                if (l1.Equals(double.NaN))
+                {
+                    Debug.LogError("Cannot convert " + startData + " to l1 ( double ). l1 = NaN");
+                    return "ECONVERSION";
+                }
             }
 
             actualNumber = startData;
@@ -219,7 +284,11 @@ namespace MathFromString
                     }
                     if (operationIsAllowed)
                     {
-
+                        if(data[i] == '+' && i > 0 && (data[i-1] == 'e' || data[i-1] == 'E'))
+                        {
+                            actualNumber += data[i];
+                            continue;
+                        }
 
                         //Debug.Log("Data before: " + data);
                         if(noPrevOperators)
@@ -229,14 +298,17 @@ namespace MathFromString
                         }
                         else
                         {
-                            data = data.Remove(i - actualNumber.Length - 1 - l1.ToString().Length, actualNumber.Length + 1 + l1.ToString().Length);
-                            i -= actualNumber.Length + 1 + l1.ToString().Length;
+                            string l1Str = MUtil.ToStandardNotationString(l1);
+
+                            data = data.Remove(i - actualNumber.Length - 1 - l1Str.Length, actualNumber.Length + 1 + l1Str.Length);
+                            i -= actualNumber.Length + 1 + l1Str.Length;
                         }
                         
                         noPrevOperators = false;
 
                         //l1 = l2;
 
+                        //actualNumber = MUtil.ExpNotationToDecimalNotation(actualNumber);
                         
                         if (!DoMaths(ref actualNumber, ref l1, ref l2, ref op, aop, ref firstOperation))
                         {
@@ -244,20 +316,30 @@ namespace MathFromString
                         }
 
 
+                        string standardNotL1 = MUtil.ToStandardNotationString(l1);
 
-
-                        data = data.Insert(i, l1.ToString());
-                        i += l1.ToString().Length;
+                        data = data.Insert(i, standardNotL1);
+                        i += standardNotL1.Length;
                         actualNumber = "";
                         op = aop;
                         //Debug.Log("Data after: " + data);
                     }
                     else
                     {
+                        if (data[i] == '+' && i > 0 && (data[i - 1] == 'e' || data[i - 1] == 'E'))
+                        {
+                            actualNumber += data[i];
+                            continue;
+                        }
                         if (!double.TryParse(actualNumber, out l1))
                         {
-                            Debug.LogError("Cannot parse " + actualNumber + " to number ( double )");
-                            return "ECONVERSION";
+                            actualNumber = MUtil.ExpNotationToDecimalNotation(actualNumber);
+                            if (!double.TryParse(actualNumber, out l1))
+                            {
+
+                                Debug.LogError("Cannot parse " + actualNumber + " to number ( double ) #2");
+                                return "ECONVERSION";
+                            }
                         }
 
                         op = aop;
@@ -284,19 +366,23 @@ namespace MathFromString
             }
             if (operationIsAllowed)
             {
+                if (data[data.Length - 1] == '+' && data.Length > 0 && (data[data.Length - 1] == 'e' || data[data.Length - 1] == 'E'))
+                {
+                    return data;
+                }
 
-                data = data.Remove(data.Length - actualNumber.Length - 1 - l1.ToString().Length, actualNumber.Length + 1 + l1.ToString().Length);
+                Debug.Log("l1.ToString(): " + MUtil.ExpNotationToDecimalNotation(l1.ToString()) + ", lenght: " + MUtil.ExpNotationToDecimalNotation(l1.ToString()).Length);
+                data = data.Remove(data.Length - actualNumber.Length - 1 - MUtil.ExpNotationToDecimalNotation(l1.ToString()).Length, actualNumber.Length + 1 + MUtil.ExpNotationToDecimalNotation(l1.ToString()).Length);
 
                 noPrevOperators = false;
 
                 //l1 = l2;
-
+                //actualNumber = MUtil.ExpNotationToDecimalNotation(actualNumber);
 
                 if (!DoMaths(ref actualNumber, ref l1, ref l2, ref op, operations[0], ref firstOperation))
                 {
                     return "ECONVERSION";
                 }
-
 
 
 
@@ -306,17 +392,7 @@ namespace MathFromString
                 op = operations[0];
                 //Debug.Log("Data after: " + data);
             }
-            else
-            {
-                if (!double.TryParse(actualNumber, out l2))
-                {
-                    Debug.LogError("Cannot parse " + actualNumber + " to number ( double )");
-                    return "ECONVERSION";
-                }
 
-                op = operations[0];
-                actualNumber = "";
-            }
 
             return data;
         }
@@ -460,6 +536,7 @@ namespace MathFromString
             Debug.Log("Data after removing spaces: " + data);
 
             data = ChangePunctuationMark(data);
+            data = MUtil.ExpNotationToDecimalNotation(data);
 
             List<BracketOperation> bracketOperations = new List<BracketOperation>();
             data = GetBrackets(data);
