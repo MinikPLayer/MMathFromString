@@ -30,6 +30,16 @@ namespace MathFromString
             public static double Divide(double l1, double l2)
             {
                 //Debug.Log("Dividing...", ConsoleColor.Cyan);
+                if(double.IsInfinity(l2))
+                {
+                    return double.NegativeInfinity;
+                }
+
+                if(double.IsInfinity(l1))
+                {
+                    return double.PositiveInfinity;
+                }
+
                 if(l2 == 0)
                 {
                     return double.NaN;
@@ -40,6 +50,37 @@ namespace MathFromString
             public static double Power(double l1, double l2)
             {
                 return MUtil.Power(l1, l2);
+                //return Math.Pow(l1, l2);
+            }
+
+            public static double Rt(double l1, double n)
+            {
+                return Math.Pow(l1, 1.0 / n);
+            }
+
+            public static double Sqrt(double l1)
+            {
+                return Math.Sqrt((float)l1);
+            }
+
+            public static double Sin(double l1)
+            {
+                return Math.Sin((float)l1);
+            }
+
+            public static double Cos(double l1)
+            {
+                return Math.Cos((float)l1);
+            }
+
+            public static double Tg(double l1)
+            {
+                return Math.Tan((float)l1);
+            }
+
+            public static double Ctg(double l1)
+            {
+                return 1f/Math.Tan((float)l1);
             }
         }
 
@@ -48,10 +89,14 @@ namespace MathFromString
             public int positionInString;
             public string operation;
 
-            public BracketOperation(string _operation, int _position)
+            public Function specialFunction;
+
+            public BracketOperation(string _operation, int _position, Function _specialFunction = null)
             {
                 positionInString = _position;
                 operation = _operation;
+
+                specialFunction = _specialFunction;
             }
         }
 
@@ -82,22 +127,104 @@ namespace MathFromString
             }
         }
 
-        private static List<Operation> operations;
+        public class Function
+        {
+            public string name;
+            public string prefix;
+            public string suffix;
+
+            public bool beforeNumber;
+
+            public Func<double, double> function;
+
+            public Function(string _name, string _prefix, string _suffix, Func<double, double> _function)
+            {
+                if(_prefix.Length > 0 && _suffix.Length > 0)
+                {
+                    Debug.LogError("Prefix and suffix are set, setting to default ( prefix only )");
+                    _suffix = "";
+                }
+
+                name = _name;
+                prefix = _prefix;
+                suffix = _suffix;
+
+                if(prefix.Length > 0)
+                {
+                    beforeNumber = true;
+                }
+                else if(suffix.Length > 0)
+                {
+                    beforeNumber = false;
+                }
+                else
+                {
+                    Debug.LogError("Empty suffix and prefix");
+                    suffix = "";
+                    beforeNumber = false;
+                }
+
+                function = _function;
+            }
+        }
+
+        private static Function[] bracketsFunctions;
+
+        private static Operation[] operations;
 
         public static void FillOperationsList()
         {
-            operations = new List<Operation>();
+            operations = new Operation[] {
+                new Operation ("Add", '+', OperationFunctions.Add),
+                new Operation ("Substract", '-', OperationFunctions.Subtract),
+                new Operation ("Multiply", '*', OperationFunctions.Multiply),
+                new Operation ("Divide", new char[]{'/', '\\', ':' }, OperationFunctions.Divide),
+                new Operation ("Power", '^', OperationFunctions.Power),
+            };
+        }
 
-            operations.Add(new Operation("Add", '+', OperationFunctions.Add));
-            operations.Add(new Operation("Subtract", '-', OperationFunctions.Subtract));
-            operations.Add(new Operation("Multiply", '*', OperationFunctions.Multiply));
-            operations.Add(new Operation("Divide", new char[] {'/', '\\', ':' }, OperationFunctions.Divide));
-            operations.Add(new Operation("Power", '^', OperationFunctions.Power));
+        public static void FillBracketsFunctions()
+        {
+            bracketsFunctions = new Function[]
+            {
+                new Function("Square Root", "sqrt", "", OperationFunctions.Sqrt),
+                new Function("Root", "rt", "", null),
+                new Function("Sinus", "sin", "", OperationFunctions.Sin),
+                new Function("Cosinus", "cos", "", OperationFunctions.Cos),
+                new Function("Tangent", "tg", "", OperationFunctions.Tg),
+                new Function("Cotangent", "ctg", "", OperationFunctions.Ctg),
+            };
+        }
+
+        private static Function FindFunction(string str, bool prefix)
+        {
+            if (prefix)
+            {
+                for (int i = 0; i < bracketsFunctions.Length; i++)
+                {
+                    if(bracketsFunctions[i].prefix == str)
+                    {
+                        return bracketsFunctions[i];
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 0; i < bracketsFunctions.Length; i++)
+                {
+                    if (bracketsFunctions[i].suffix == str)
+                    {
+                        return bracketsFunctions[i];
+                    }
+                }
+            }
+
+            return null;
         }
 
         private static Operation FindOperation(char opChar)
         {
-            for(int i = 0;i<operations.Count;i++)
+            for(int i = 0;i<operations.Length;i++)
             {
                 for(int j = 0;j<operations[i].operatorChars.Length;j++)
                 {
@@ -154,7 +281,7 @@ namespace MathFromString
         public static string CalculateSpecificOperations(string data, Operation[] allowedOperations)
         {
             double l1 = 0, l2 = 0;
-            Operation op = operations[0]; // First operation is always addition
+            Operation op = null; // First operation is always addition
 
 
             string actualNumber = "";
@@ -190,7 +317,7 @@ namespace MathFromString
 
             if(startIndex == 0)
             {
-                Debug.LogError("Operator without number: " + data);
+                Debug.LogError("Operator without number: \"" + data + "\" op: " + op.name);
                 return "EOPWTHTNMBR";
             }
 
@@ -199,7 +326,7 @@ namespace MathFromString
             if(!double.TryParse(startData, out l1))
             {
 
-                if (startData[startData.Length - 1] == 'E' || startData[startData.Length - 1] == 'e')
+                if (startData[startData.Length - 1] == 'E')
                 {
                     for (int i = startData.Length; i < data.Length; i++)
                     {
@@ -215,7 +342,7 @@ namespace MathFromString
 
                     for(int i = 0;i<data.Length;i++)
                     {
-                        if(data[i] == 'e' || data[i] == 'E')
+                        if(data[i] == 'E')
                         {
                             if(data.Length > i + 1)
                             {
@@ -284,7 +411,7 @@ namespace MathFromString
                     }
                     if (operationIsAllowed)
                     {
-                        if(data[i] == '+' && i > 0 && (data[i-1] == 'e' || data[i-1] == 'E'))
+                        if(data[i] == '+' && i > 0 && (data[i-1] == 'E'))
                         {
                             actualNumber += data[i];
                             continue;
@@ -326,7 +453,7 @@ namespace MathFromString
                     }
                     else
                     {
-                        if (data[i] == '+' && i > 0 && (data[i - 1] == 'e' || data[i - 1] == 'E'))
+                        if (data[i] == '+' && i > 0 && (data[i - 1] == 'E'))
                         {
                             actualNumber += data[i];
                             continue;
@@ -366,7 +493,7 @@ namespace MathFromString
             }
             if (operationIsAllowed)
             {
-                if (data[data.Length - 1] == '+' && data.Length > 0 && (data[data.Length - 1] == 'e' || data[data.Length - 1] == 'E'))
+                if (data[data.Length - 1] == '+' && data.Length > 0 && (data[data.Length - 1] == 'E'))
                 {
                     return data;
                 }
@@ -401,13 +528,24 @@ namespace MathFromString
         private static string CalculateExpression(string data)
         {
             data = CalculateSpecificOperations(data, new Operation[] { operations[4] /* power */});
-            //Debug.Log("Data after powers: " + data);
             data = CalculateSpecificOperations(data, new Operation[] { operations[2] /* multiply */ , operations[3] /* divide */ });
-            //Debug.Log("Data after multiplying and dividing: " + data);
             data = CalculateSpecificOperations(data, new Operation[] { operations[0] /* add */ , operations[1] /* substract */ });
-            //Debug.Log("Data after adding and substracting: " + data);
 
             return data;
+        }
+
+        /// <summary>
+        /// Replaces PI with 3.14
+        /// </summary>
+        /// <param name="data">Src in which you want to replace constants</param>
+        /// <returns>Replaced string</returns>
+        private static string ReplaceConstants(string data)
+        {
+            const string pi = "3,14159265358979";
+            const string e =  "2,71828182845904";
+            const string fi = "1,61803398874989";
+
+            return data.Replace("Pi", pi).Replace("PI", pi).Replace("pi", pi).Replace("e", e).Replace("fi", fi).Replace("Fi", fi).Replace("FI", fi);
         }
 
         /// <summary>
@@ -416,9 +554,10 @@ namespace MathFromString
         /// <param name="data">String with expression</param>
         /// <param name="bracketOperations"></param>
         /// <returns>Data without brackets operations</returns>
-        private static string GetBrackets(string data)
+        private static string CalculateBrackets(string data)
         {
             string actExpr = "";
+            string specialMode = "";
             int bracketLevel = 0;
 
             List<BracketOperation> bracketOperations = new List<BracketOperation>();
@@ -438,16 +577,30 @@ namespace MathFromString
                     }
                     else if(bracketLevel == 1)
                     {
-                        BracketOperation operation = new BracketOperation(actExpr.Remove(0,1).Remove(actExpr.Length - 2, 1), i - actExpr.Length + 1);
+                        BracketOperation operation = new BracketOperation(actExpr.Remove(0, 1).Remove(actExpr.Length - 2, 1), i - actExpr.Length + 1 - specialMode.Length);
+                        if (specialMode.Length > 0)
+                        {
+                            Function f = FindFunction(specialMode, true);
+                            if(f == null)
+                            {
+                                Debug.LogError("Cannot find function " + specialMode);
+                                return "ENOFUNCTION";
+                            }
+
+                            operation.specialFunction = f;
+                        }
+
+                        
                         //Debug.Log("Bracket operation: \"" + operation.operation + "\"");
                         //Debug.Log("Bracket operation start: " + operation.positionInString);
 
                         bracketOperations.Add(operation);
 
 
-                        data = data.Remove(i - actExpr.Length + 1, actExpr.Length);
+                        data = data.Remove(i - actExpr.Length + 1 - specialMode.Length, actExpr.Length + specialMode.Length);
                         i -= actExpr.Length;
                         actExpr = "";
+                        specialMode = "";
 
                         bracketLevel = 0;
                     }
@@ -463,6 +616,15 @@ namespace MathFromString
                     if (bracketLevel == 1)
                     {
                         actExpr += data[i];
+                        string s = "";
+                        for (int j = i - 1;j>=0;j--)
+                        {
+                            if (MUtil.IsNumber(data[j])) break;
+                            if (FindOperation(data[j]) != null) break;
+
+                            s = "" + data[j];
+                            specialMode = specialMode.Insert(0, s);
+                        }
                     }
                 }
             }
@@ -479,19 +641,101 @@ namespace MathFromString
             {
 
                 BracketOperation op = bracketOperations[i];
-                op.operation = GetBrackets(bracketOperations[i].operation);
+                op.operation = CalculateBrackets(bracketOperations[i].operation);
                 bracketOperations[i] = op;
             }
 
             // Calcualate brackets
             for(int i = 0;i<bracketOperations.Count;i++)
             {
-                string result = CalculateExpression(bracketOperations[i].operation);
+
+                string rtBeforeComma = "";
+                string rtAfterComma = "";
+                bool rtIsAfterComma = false;
+
+                string result;
+
+                if (bracketOperations[i].specialFunction != null && bracketOperations[i].specialFunction.name == "Root")
+                {
+
+                    for (int j = 0; j < bracketOperations[i].operation.Length; j++)
+                    {
+                        if (bracketOperations[i].operation[j] == ',')
+                        {
+                            rtIsAfterComma = true;
+                            continue;
+                        }
+
+                        if (rtIsAfterComma)
+                        {
+                            rtAfterComma += bracketOperations[i].operation[j];
+                        }
+                        else
+                        {
+                            rtBeforeComma += bracketOperations[i].operation[j];
+                        }
+                    }
+
+                    rtBeforeComma = CalculateExpression(rtBeforeComma);
+                    //Debug.Log("rtBeforeComma after: " + rtBeforeComma);
+                    rtAfterComma = CalculateExpression(rtAfterComma);
+                    //Debug.Log("rtAfterComma after: " + rtAfterComma);
+
+                    result = "0";
+                }
+                else
+                {
+                    result = CalculateExpression(bracketOperations[i].operation);
+                }
                 double res;
                 if(!double.TryParse(result, out res))
                 {
                     Debug.LogError("Cannot convert " + result + " to result ( double )");
                     return "ECONVERSION";
+                }
+
+                if(bracketOperations[i].specialFunction != null)
+                {
+                    if (bracketOperations[i].specialFunction.function != null)
+                    {
+                        res = bracketOperations[i].specialFunction.function.Invoke(res);
+                        result = MUtil.ToStandardNotationString(res);
+                        if (result.Length == 0) result = "0";
+                    }
+                    else
+                    {
+                        if(bracketOperations[i].specialFunction.name == "Root")
+                        {
+
+
+                            if(rtBeforeComma.Length == 0 || rtAfterComma.Length == 0)
+                            {
+                                Debug.LogError("Bad root arguments");
+                                return "EBADROOTARG";
+                            }
+                            else
+                            {
+                                double l1;
+                                double n;
+                                if(!double.TryParse(rtBeforeComma, out l1))
+                                {
+                                    Debug.LogError("Cannot convert first root argument to l1 ( double )");
+                                    return "EBADCONVERSION";
+                                }
+                                if(!double.TryParse(rtAfterComma, out n))
+                                {
+                                    Debug.LogError("Cannot convert second root argument to n ( double )");
+                                    return "EBADCONVERSION";
+                                }
+
+                                res = OperationFunctions.Rt(l1, n);
+                                result = MUtil.ToStandardNotationString(res);
+                                if (result.Length == 0) result = "0";
+                            }
+                        }
+                    }
+
+                    //Debug.Log("Result: " + result);
                 }
 
                 data = data.Insert(bracketOperations[i].positionInString, result);
@@ -532,45 +776,26 @@ namespace MathFromString
                 FillOperationsList();
             }
 
-            //Debug.Log("Data before removing spaces: " + data);
+            if(bracketsFunctions == null)
+            {
+                FillBracketsFunctions();
+            }
+
             data = MUtil.RemoveSpaces(data);
-            //Debug.Log("Data after removing spaces: " + data);
 
             data = ChangePunctuationMark(data);
             data = MUtil.ExpNotationToDecimalNotation(data);
 
-            data = GetBrackets(data);
-            //Debug.Log("Data after bracket calculating: \"" + data + "\"");
+            data = ReplaceConstants(data);
 
-            // Multiply
-            data = CalculateExpression(data);
-
-            /*actualNumber = "";
-            l1 = l2 = 0;
-            op = operations[0];
-
-            // Rest
-            for (int i = 0; i < data.Length; i++)
+            data = CalculateBrackets(data);
+            if(data.StartsWith("E"))
             {
-                Operation aop = FindOperation(data[i]);
-                if (aop != null)
-                {
-                    if (!DoMaths(ref actualNumber, ref l1, ref l2, ref op, aop))
-                    {
-                        return -2;
-                    }
-                }
-                else
-                {
-                    actualNumber += data[i];
-                }
+                return double.NaN;
             }
 
-            //Debug.Log("Actual number: " + actualNumber + ", operator: " + op.name);
-            if (!DoMaths(ref actualNumber, ref l1, ref l2, ref op, operations[0]))
-            {
-                return -2;
-            }*/
+
+            data = CalculateExpression(data);
 
 
             double result = 0;

@@ -8,16 +8,23 @@ namespace MathFromString
     {
         public static bool IsNumber(char data)
         {
-            if(data >= 48 && data <= 57)
+            /*if(data >= 48 && data <= 57)
             {
                 return true;
             }
 
-            return false;
+            return false;*/
+
+            return (data >= 48 && data <= 57);
         }
 
         public static double Power(double a, double n)
         {
+            if(n%1 != 0)
+            {
+                return Math.Pow(a, n);
+            }
+
             if (a == 0) return 0;
             if (a == 1) return 1;
             if (n == 0) return 1;
@@ -66,10 +73,6 @@ namespace MathFromString
             {
                 bigE = true;
             }
-            else if(number.Contains("e+"))
-            {
-                bigE = false;
-            }
             else
             {
                 return number;
@@ -92,72 +95,36 @@ namespace MathFromString
                     continue;
                 }
 
-                if (bigE)
+                if (number[i] == 'E')
                 {
-                    if (number[i] == 'E')
+                    if (i + 2 >= number.Length)
                     {
-                        if (i + 2 >= number.Length)
-                        {
-                            Debug.LogError("No exp value 1E");
-                            return "ERROR";
-                        }
-
-                        if (number[i + 1] != '+')
-                        {
-                            Debug.LogError("Unknown char E in data");
-                            return "ERROR";
-                        }
-
-
-                        for (int j = i + 2; j < number.Length; j++)
-                        {
-                            if (!IsNumber(number[j]))
-                            {
-                                if (stopOnDifferentChar)
-                                {
-                                    rest = number.Substring(j, number.Length - j);
-                                    break;
-                                }
-                            }
-
-                            expValue += number[j];
-                        }
-
-                        break;
+                        Debug.LogError("No exp value 1E");
+                        return "ERROR";
                     }
-                }
-                else
-                {
-                    if (number[i] == 'e')
+
+                    if (number[i + 1] != '+')
                     {
-                        if (i + 2 >= number.Length)
-                        {
-                            Debug.LogError("No exp value 1e");
-                            return "ERROR";
-                        }
-
-                        if (number[i + 1] != '+')
-                        {
-                            Debug.LogError("Unknown char e in data");
-                            return "ERROR"; 
-                        }
-
-                        for (int j = i + 2; j < number.Length; j++)
-                        {
-                            if(!IsNumber(number[j]))
-                            {
-                                if (stopOnDifferentChar)
-                                {
-                                    rest = number.Substring(j, number.Length - j);
-                                    break;
-                                }
-                            }
-
-                            expValue += number[j];
-                        }
-
-                        break;
+                        Debug.LogError("Unknown char E in data");
+                        return "ERROR";
                     }
+
+
+                    for (int j = i + 2; j < number.Length; j++)
+                    {
+                        if (!IsNumber(number[j]))
+                        {
+                            if (stopOnDifferentChar)
+                            {
+                                rest = number.Substring(j, number.Length - j);
+                                break;
+                            }
+                        }
+
+                        expValue += number[j];
+                    }
+
+                    break;
                 }
 
                 if (wasComma)
