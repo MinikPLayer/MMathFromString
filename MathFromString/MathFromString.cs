@@ -30,7 +30,28 @@ namespace MathFromString
             public static double Divide(double l1, double l2)
             {
                 //Debug.Log("Dividing...", ConsoleColor.Cyan);
+                if(l2 == 0)
+                {
+                    return double.NaN;
+                }
                 return l1 / l2;
+            }
+
+            public static double Power(double l1, double l2)
+            {
+                return MUtil.Power(l1, l2);
+            }
+        }
+
+        public struct BracketOperation
+        {
+            public int positionInString;
+            public string operation;
+
+            public BracketOperation(string _operation, int _position)
+            {
+                positionInString = _position;
+                operation = _operation;
             }
         }
 
@@ -71,6 +92,7 @@ namespace MathFromString
             operations.Add(new Operation("Subtract", '-', OperationFunctions.Subtract));
             operations.Add(new Operation("Multiply", '*', OperationFunctions.Multiply));
             operations.Add(new Operation("Divide", new char[] {'/', '\\', ':' }, OperationFunctions.Divide));
+            operations.Add(new Operation("Power", '^', OperationFunctions.Power));
         }
 
         private static Operation FindOperation(char opChar)
@@ -141,7 +163,11 @@ namespace MathFromString
 
                 if (op != null)
                 {
-                    
+                    if(i == 0 && data[0] == '-')
+                    {
+                        startData += data[0];
+                        continue;
+                    }
                     startIndex = i;
                     break;
                 }
@@ -176,6 +202,12 @@ namespace MathFromString
                 Operation aop = FindOperation(data[i]);
                 if (aop != null)
                 {
+                    if(actualNumber.Length == 0 && data[i] == '-')
+                    {
+                        actualNumber += data[i];
+                        continue;   
+                    }
+
                     operationIsAllowed = false;
                     for(int j = 0;j< allowedOperations.Length;j++)
                     {
@@ -289,12 +321,133 @@ namespace MathFromString
             return data;
         }
 
+        private static string CalculateExpression(string data)
+        {
+            data = CalculateSpecificOperations(data, new Operation[] { operations[4] /* power */});
+            Debug.Log("Data after powers: " + data);
+            data = CalculateSpecificOperations(data, new Operation[] { operations[2] /* multiply */ , operations[3] /* divide */ });
+            Debug.Log("Data after multiplying and dividing: " + data);
+            data = CalculateSpecificOperations(data, new Operation[] { operations[0] /* add */ , operations[1] /* substract */ });
+            Debug.Log("Data after adding and substracting: " + data);
+
+            return data;
+        }
+
+        /// <summary>
+        /// Gets bracket operation and creates list from them
+        /// </summary>
+        /// <param name="data">String with expression</param>
+        /// <param name="bracketOperations"></param>
+        /// <returns>Data without brackets operations</returns>
+        private static string GetBrackets(string data)
+        {
+            string actExpr = "";
+            int bracketLevel = 0;
+
+            List<BracketOperation> bracketOperations = new List<BracketOperation>();
+            
+            for(int i = 0;i<data.Length;i++)
+            {
+                if (bracketLevel > 0)
+                {
+                    actExpr += data[i];
+                }
+
+                if(data[i] == ')')
+                {
+                    if(bracketLevel > 1)
+                    {
+                        bracketLevel--;
+                    }
+                    else if(bracketLevel == 1)
+                    {
+                        BracketOperation operation = new BracketOperation(actExpr.Remove(0,1).Remove(actExpr.Length - 2, 1), i - actExpr.Length + 1);
+                        Debug.Log("Bracket operation: \"" + operation.operation + "\"");
+                        Debug.Log("Bracket operation start: " + operation.positionInString);
+
+                        bracketOperations.Add(operation);
+
+
+                        data = data.Remove(i - actExpr.Length + 1, actExpr.Length);
+                        i -= actExpr.Length;
+                        actExpr = "";
+
+                        bracketLevel = 0;
+                    }
+                    else
+                    {
+                        Debug.LogError("Closing bracket without opening");
+                        return double.NaN.ToString();
+                    }
+                }
+                else if(data[i] == '(')
+                {
+                    bracketLevel++;
+                    if (bracketLevel == 1)
+                    {
+                        actExpr += data[i];
+                    }
+                }
+            }
+
+            //Debug.Log("Bracket level: " + bracketLevel);
+            if(bracketLevel > 0)
+            {
+                Debug.LogError("No closing bracket");
+                return "ENOCLOSEBRACKET";
+            }
+
+            // Recurently get additional brackets from brackets
+            for(int i = 0;i<bracketOperations.Count;i++)
+            {
+
+                BracketOperation op = bracketOperations[i];
+                op.operation = GetBrackets(bracketOperations[i].operation);
+                bracketOperations[i] = op;
+            }
+
+            // Calcualate brackets
+            for(int i = 0;i<bracketOperations.Count;i++)
+            {
+                string result = CalculateExpression(bracketOperations[i].operation);
+                double res;
+                if(!double.TryParse(result, out res))
+                {
+                    Debug.LogError("Cannot convert " + result + " to result ( double )");
+                    return "ECONVERSION";
+                }
+
+                data = data.Insert(bracketOperations[i].positionInString, result);
+                
+                // Fix offsets
+                for(int j = i + 1;j<bracketOperations.Count;j++)
+                {
+                    BracketOperation tOp = bracketOperations[j];
+                    tOp.positionInString += result.Length;
+
+                    bracketOperations[j] = tOp;
+                }
+            }
+
+            return data;
+        }
+
+        /// <summary>
+        /// Changes . to ,
+        /// </summary>
+        /// <param name="data">Data to change</param>
+        /// <returns>Changed data</returns>
+        public static string ChangePunctuationMark(string data)
+        {
+            return data.Replace(".", ",");
+        }
+
         public static double Calculate(string data)
         {
             if (data.Length == 0)
             {
                 Debug.LogError("Data is empty");
-                return -1;
+                return double.NaN;
             }
 
             if (operations == null)
@@ -302,13 +455,18 @@ namespace MathFromString
                 FillOperationsList();
             }
 
+            Debug.Log("Data before removing spaces: " + data);
             data = MUtil.RemoveSpaces(data);
+            Debug.Log("Data after removing spaces: " + data);
+
+            data = ChangePunctuationMark(data);
+
+            List<BracketOperation> bracketOperations = new List<BracketOperation>();
+            data = GetBrackets(data);
+            Debug.Log("Data after bracket calculating: \"" + data + "\"");
 
             // Multiply
-            data = CalculateSpecificOperations(data, new Operation[] { operations[2] /* multiply */ , operations[3] /* divide */ });
-            Debug.Log("Data after multiplying and dividing: " + data);
-            data = CalculateSpecificOperations(data, new Operation[] { operations[0] /* add */ , operations[1] /* substract */ });
-            Debug.Log("Data after adding and substracting: " + data);
+            data = CalculateExpression(data);
 
             /*actualNumber = "";
             l1 = l2 = 0;
@@ -337,9 +495,16 @@ namespace MathFromString
                 return -2;
             }*/
 
-            
 
-            return -2;
+            double result = 0;
+
+            if(!double.TryParse(data, out result))
+            {
+                Debug.LogError("Cannot parse " + data + " to result ( double )");
+                return double.NaN;
+            }
+
+            return result;
         }
     }
 }

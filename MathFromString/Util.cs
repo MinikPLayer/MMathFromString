@@ -6,6 +6,28 @@ namespace MathFromString
 {
     public static class MUtil
     {
+        public static double Power(double a, double n)
+        {
+            if (a == 0) return 0;
+            if (a == 1) return 1;
+            if (n == 0) return 1;
+
+            double t = a;
+            for(int i = 1;i<n;i++)
+            {
+                a *= t;
+            }
+
+            if(n < 0)
+            {
+                return 1.0/a;
+            }
+            else
+            {
+                return a;
+            }
+        }
+
         public static string RemoveSpaces(string src)
         {
             return RemoveChars(src, new char[] { ' ' });
@@ -19,7 +41,7 @@ namespace MathFromString
                 {
                     if(src[i] == charsToRemove[j])
                     {
-                        src.Remove(i, 1);
+                        src = src.Remove(i, 1);
                         i--;
                     }
                 }
