@@ -371,8 +371,9 @@ namespace MathFromString
                     return data;
                 }
 
-                Debug.Log("l1.ToString(): " + MUtil.ExpNotationToDecimalNotation(l1.ToString()) + ", lenght: " + MUtil.ExpNotationToDecimalNotation(l1.ToString()).Length);
-                data = data.Remove(data.Length - actualNumber.Length - 1 - MUtil.ExpNotationToDecimalNotation(l1.ToString()).Length, actualNumber.Length + 1 + MUtil.ExpNotationToDecimalNotation(l1.ToString()).Length);
+                //Debug.Log("l1.ToString(): " + MUtil.ExpNotationToDecimalNotation(l1.ToString()) + ", lenght: " + MUtil.ExpNotationToDecimalNotation(l1.ToString()).Length);
+                string l1Str = MUtil.ToStandardNotationString(l1);
+                data = data.Remove(data.Length - actualNumber.Length - 1 - l1Str.Length, actualNumber.Length + 1 + l1Str.Length);
 
                 noPrevOperators = false;
 
@@ -386,7 +387,7 @@ namespace MathFromString
 
 
 
-                data = data.Insert(data.Length, l1.ToString());
+                data = data.Insert(data.Length, MUtil.ToStandardNotationString(l1));
                 //i += l1.ToString().Length;
                 actualNumber = "";
                 op = operations[0];
@@ -400,11 +401,11 @@ namespace MathFromString
         private static string CalculateExpression(string data)
         {
             data = CalculateSpecificOperations(data, new Operation[] { operations[4] /* power */});
-            Debug.Log("Data after powers: " + data);
+            //Debug.Log("Data after powers: " + data);
             data = CalculateSpecificOperations(data, new Operation[] { operations[2] /* multiply */ , operations[3] /* divide */ });
-            Debug.Log("Data after multiplying and dividing: " + data);
+            //Debug.Log("Data after multiplying and dividing: " + data);
             data = CalculateSpecificOperations(data, new Operation[] { operations[0] /* add */ , operations[1] /* substract */ });
-            Debug.Log("Data after adding and substracting: " + data);
+            //Debug.Log("Data after adding and substracting: " + data);
 
             return data;
         }
@@ -438,8 +439,8 @@ namespace MathFromString
                     else if(bracketLevel == 1)
                     {
                         BracketOperation operation = new BracketOperation(actExpr.Remove(0,1).Remove(actExpr.Length - 2, 1), i - actExpr.Length + 1);
-                        Debug.Log("Bracket operation: \"" + operation.operation + "\"");
-                        Debug.Log("Bracket operation start: " + operation.positionInString);
+                        //Debug.Log("Bracket operation: \"" + operation.operation + "\"");
+                        //Debug.Log("Bracket operation start: " + operation.positionInString);
 
                         bracketOperations.Add(operation);
 
@@ -531,16 +532,15 @@ namespace MathFromString
                 FillOperationsList();
             }
 
-            Debug.Log("Data before removing spaces: " + data);
+            //Debug.Log("Data before removing spaces: " + data);
             data = MUtil.RemoveSpaces(data);
-            Debug.Log("Data after removing spaces: " + data);
+            //Debug.Log("Data after removing spaces: " + data);
 
             data = ChangePunctuationMark(data);
             data = MUtil.ExpNotationToDecimalNotation(data);
 
-            List<BracketOperation> bracketOperations = new List<BracketOperation>();
             data = GetBrackets(data);
-            Debug.Log("Data after bracket calculating: \"" + data + "\"");
+            //Debug.Log("Data after bracket calculating: \"" + data + "\"");
 
             // Multiply
             data = CalculateExpression(data);

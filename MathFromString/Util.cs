@@ -58,7 +58,7 @@ namespace MathFromString
 
         public static string ExpNotationToDecimalNotation(string number, bool stopOnDifferentChar = true, bool includeRest = true)
         {
-            Debug.Log("Converting " + number);
+            //Debug.Log("Converting " + number);
 
             bool bigE = false;
 
@@ -185,10 +185,10 @@ namespace MathFromString
                 return "ERROR";
             }
 
-            Debug.Log("Before comma: " + beforeComma);
-            Debug.Log("After comma: " + afterComma);
-            Debug.Log("Exp: " + expValue);
-            Debug.Log("Rest: " + rest);
+            //Debug.Log("Before comma: " + beforeComma);
+            //Debug.Log("After comma: " + afterComma);
+            //Debug.Log("Exp: " + expValue);
+            //Debug.Log("Rest: " + rest);
 
             for(int i = 0;i<exp;i++)
             {
@@ -202,7 +202,7 @@ namespace MathFromString
                 }
             }
 
-            Debug.Log("Result: " + beforeComma + "\n\n");
+            //Debug.Log("Result: " + beforeComma + "\n\n");
 
             if (includeRest)
             {
