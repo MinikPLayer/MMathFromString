@@ -187,12 +187,17 @@ namespace MathFromString
         /// </summary>
         /// <param name="d">The double to convert.</param>
         /// <returns>The double as a standard notation string.</returns>
-        public static String ToStandardNotationString(double d)
-        {
-            //Keeps precision of double up to is maximum
-            return d.ToString(".#####################################################################################################################################################################################################################################################################################################################################");
-
-        }
+		public static String ToStandardNotationString(double d)
+		{
+			//Keeps precision of double up to is maximum
+			string str = d.ToString(".#####################################################################################################################################################################################################################################################################################################################################");
+			if (str.Length == 0) return "0";
+			if (str[0] == ',')
+			{
+				str = str.Insert(0, "0");
+			}
+			return str;
+		}
 
         public static string RemoveChars(string src, char[] charsToRemove)
         {

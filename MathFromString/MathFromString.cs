@@ -82,6 +82,11 @@ namespace MathFromString
             {
                 return 1f/Math.Tan((float)l1);
             }
+
+            public static double Abs(double l1)
+            {
+                return Math.Abs(l1);
+            }
         }
 
         public struct BracketOperation
@@ -193,6 +198,7 @@ namespace MathFromString
                 new Function("Cosinus", "cos", "", OperationFunctions.Cos),
                 new Function("Tangent", "tg", "", OperationFunctions.Tg),
                 new Function("Cotangent", "ctg", "", OperationFunctions.Ctg),
+                new Function("Absolute", "abs", "", OperationFunctions.Abs),
             };
         }
 
@@ -202,7 +208,7 @@ namespace MathFromString
             {
                 for (int i = 0; i < bracketsFunctions.Length; i++)
                 {
-                    if(bracketsFunctions[i].prefix == str)
+                    if (bracketsFunctions[i].prefix.Equals(str))
                     {
                         return bracketsFunctions[i];
                     }
@@ -598,7 +604,7 @@ namespace MathFromString
 
 
                         data = data.Remove(i - actExpr.Length + 1 - specialMode.Length, actExpr.Length + specialMode.Length);
-                        i -= actExpr.Length;
+                        i -= actExpr.Length + specialMode.Length;
                         actExpr = "";
                         specialMode = "";
 
