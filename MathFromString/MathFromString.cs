@@ -11,25 +11,21 @@ namespace MathFromString
         {
             public static double Add(double l1, double l2)
             {
-                //Debug.Log("Adding...", ConsoleColor.Cyan);
                 return l1 + l2;
             }
 
             public static double Subtract(double l1, double l2)
             {
-                //Debug.Log("Substracting...", ConsoleColor.Cyan);
                 return l1 - l2;
             }
 
             public static double Multiply(double l1, double l2)
             {
-                //Debug.Log("Multiplying...", ConsoleColor.Cyan);
                 return l1 * l2;
             }
 
             public static double Divide(double l1, double l2)
             {
-                //Debug.Log("Dividing...", ConsoleColor.Cyan);
                 if(double.IsInfinity(l2))
                 {
                     return double.NegativeInfinity;
@@ -50,7 +46,6 @@ namespace MathFromString
             public static double Power(double l1, double l2)
             {
                 return MUtil.Power(l1, l2);
-                //return Math.Pow(l1, l2);
             }
 
             public static double Rt(double l1, double n)
@@ -86,6 +81,16 @@ namespace MathFromString
             public static double Abs(double l1)
             {
                 return Math.Abs(l1);
+            }
+
+            public static double Log(double l1, double n)
+            {
+                return Math.Log(l1, n);
+            }
+
+            public static double Ln(double l1)
+            {
+                return Math.Log(l1);
             }
         }
 
@@ -140,9 +145,10 @@ namespace MathFromString
 
             public bool beforeNumber;
 
-            public Func<double, double> function;
+            public Func<double, double> function = null;
+            public Func<double, double, double> twoArgFunction = null;
 
-            public Function(string _name, string _prefix, string _suffix, Func<double, double> _function)
+            public Function(string _name, string _prefix, string _suffix, Func<double, double> _function, Func<double, double, double> twoArgFunction = null)
             {
                 if(_prefix.Length > 0 && _suffix.Length > 0)
                 {
@@ -170,6 +176,7 @@ namespace MathFromString
                 }
 
                 function = _function;
+                this.twoArgFunction = twoArgFunction;
             }
         }
 
@@ -193,12 +200,14 @@ namespace MathFromString
             bracketsFunctions = new Function[]
             {
                 new Function("Square Root", "sqrt", "", OperationFunctions.Sqrt),
-                new Function("Root", "rt", "", null),
+                new Function("Root", "rt", "", null, OperationFunctions.Rt),
                 new Function("Sinus", "sin", "", OperationFunctions.Sin),
                 new Function("Cosinus", "cos", "", OperationFunctions.Cos),
                 new Function("Tangent", "tg", "", OperationFunctions.Tg),
                 new Function("Cotangent", "ctg", "", OperationFunctions.Ctg),
                 new Function("Absolute", "abs", "", OperationFunctions.Abs),
+                new Function("Logarithm", "log", "", null, OperationFunctions.Log),
+                new Function("Natural Logarithm", "ln", OperationFunctions.Ln)
             };
         }
 
@@ -246,9 +255,6 @@ namespace MathFromString
 
         public static bool DoMaths(ref string number, ref double l1, ref double l2, ref Operation op, Operation newOp, ref bool firstOperation)
         {
-            //l1 = l2;
-            //Debug.Log("Actual number: " + number + ", operator: " + op.name);
-
             // Do not assign l2 if it's first time
             if (!firstOperation)
             {
@@ -272,10 +278,6 @@ namespace MathFromString
             {
                 firstOperation = false;
             }
-
-            //Debug.Log("L1: " + l1);
-            //Debug.Log("L2: " + l2);
-
             number = "";
             op = newOp;
 
@@ -661,12 +663,13 @@ namespace MathFromString
 
                 string result;
 
-                if (bracketOperations[i].specialFunction != null && bracketOperations[i].specialFunction.name == "Root")
+                // Two args functions
+                if (bracketOperations[i].specialFunction != null && bracketOperations[i].specialFunction.function == null && bracketOperations[i].specialFunction.twoArgFunction != null)
                 {
 
                     for (int j = 0; j < bracketOperations[i].operation.Length; j++)
                     {
-                        if (bracketOperations[i].operation[j] == ',')
+                        if (bracketOperations[i].operation[j] == ';')
                         {
                             rtIsAfterComma = true;
                             continue;
@@ -710,13 +713,13 @@ namespace MathFromString
                     }
                     else
                     {
-                        if(bracketOperations[i].specialFunction.name == "Root")
+                        if(bracketOperations[i].specialFunction.function == null && bracketOperations[i].specialFunction.twoArgFunction != null)
                         {
 
 
                             if(rtBeforeComma.Length == 0 || rtAfterComma.Length == 0)
                             {
-                                Debug.LogError("Bad root arguments");
+                                Debug.LogError("Bad 2 arg function arguments");
                                 return "EBADROOTARG";
                             }
                             else
@@ -734,7 +737,7 @@ namespace MathFromString
                                     return "EBADCONVERSION";
                                 }
 
-                                res = OperationFunctions.Rt(l1, n);
+                                res = bracketOperations[i].specialFunction.twoArgFunction(l1, n); //OperationFunctions.Rt(l1, n);
                                 result = MUtil.ToStandardNotationString(res);
                                 if (result.Length == 0) result = "0";
                             }

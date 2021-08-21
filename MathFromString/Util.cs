@@ -20,6 +20,9 @@ namespace MathFromString
 
         public static double Power(double a, double n)
         {
+            return Math.Pow(a, n);
+            /*
+
             if(n%1 != 0)
             {
                 return Math.Pow(a, n);
@@ -42,7 +45,7 @@ namespace MathFromString
             else
             {
                 return a;
-            }
+            }*/
         }
 
         public static string RemoveSpaces(string src)
